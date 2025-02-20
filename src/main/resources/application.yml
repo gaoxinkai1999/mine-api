@@ -1,0 +1,81 @@
+server:
+  port: 8085
+  #  开启gzip压缩
+  compression:
+    enabled: true
+    mime-types: application/javascript,text/css,application/json,application/xml,text/html,text/xml,text/plain
+  #  controller全局前置路径
+  servlet:
+    context-path: /api
+spring:
+  jackson:
+    date-format: "yyyy-MM-dd HH:mm:ss"
+    time-zone: "GMT+8"
+  jpa:
+    hibernate:
+      ddl-auto: none
+    #    open-in-view: true
+    #    配置懒加载
+    properties:
+      hibernate:
+        format_sql: true
+    #        enable_lazy_load_no_trans: false
+    #    控制台打印jpa执行的sql
+    show-sql: false
+
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://101.42.104.145:3306/new
+    #    url: jdbc:mysql://127.0.0.1:3306/mine
+
+    #    url: jdbc:mysql://124.221.98.251:3306/mine
+    #        url: jdbc:mysql://g.abocidee.com:3306/junlebao
+    username: root
+    password: miaoshidahu
+
+    type: com.alibaba.druid.pool.DruidDataSource
+    druid:
+      # 连接池初始化大小
+      initial-size: 10
+      # 最大活动连接数
+      max-active: 200
+      # 最小空闲连接数
+      min-idle: 10
+      # 获取连接的最大等待时间，单位为毫秒（推荐使用默认值）
+      max-wait: 1000
+      validation-query: SELECT 1                 # 用于检测连接是否有效的 SQL 语句
+      validation-query-timeout: 5                # 检测连接是否有效的超时时间，单位秒
+      test-on-borrow: true                       # 连接获取时是否检测连接的有效性，默认为false
+      test-on-return: false                      # 连接返回时是否检测连接的有效性，默认为false
+      test-while-idle: true                      # 连接空闲时是否检测连接的有效性，默认为false
+      time-between-eviction-runs-millis: 60000   # 空闲连接检测周期，单位毫秒
+      min-evictable-idle-time-millis: 300000     # 连接在池中最小生存的时间，单位毫秒
+      max-evictable-idle-time-millis: 600000     # 连接在池中最大生存的时间，单位毫秒
+
+
+
+
+
+
+forest:
+  ## 日志总开关，打开/关闭Forest请求/响应日志（默认为 true）
+  log-enabled: false
+  ## 打开/关闭Forest请求日志（默认为 true）
+  log-request: true
+  ## 打开/关闭Forest响应状态日志（默认为 true）
+  log-response-status: true
+  ## 打开/关闭Forest响应内容日志（默认为 false）
+  log-response-content: true
+
+  connect-timeout: 30000      # 连接超时时间，单位为毫秒（默认为 timeout）
+  read-timeout: 30000
+
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui
+
+
+
