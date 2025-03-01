@@ -32,7 +32,7 @@ public class Category implements Serializable {
 
     // 创建时间
     @Column(nullable = false)
-    private LocalDateTime createTime;
+    private LocalDateTime createTime=LocalDateTime.now();
 
 
     @NotNull

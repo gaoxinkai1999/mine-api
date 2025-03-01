@@ -1,6 +1,7 @@
 package com.example.modules.mapper;
 
 import com.example.modules.dto.category.CategoryRequestDto;
+import com.example.modules.dto.category.CategoryUpdateDto;
 import com.example.modules.entity.Category;
 import org.mapstruct.*;
 
@@ -12,4 +13,7 @@ public interface CategoryMapper {
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     void partialUpdate(CategoryRequestDto categoryRequestDto, @MappingTarget Category category);
+
+    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+    void partialUpdate(CategoryUpdateDto categoryUpdateDto, @MappingTarget Category category);
 }

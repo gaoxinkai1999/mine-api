@@ -2,6 +2,7 @@ package com.example.modules.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.math.BigDecimal;
 
@@ -32,17 +33,13 @@ public class Product {
     @Column(name = "default_sale_price", precision = 10,scale = 2)
     private BigDecimal defaultSalePrice;
 
-
-    @ToString.Include
-    @Column(name = "inventory", nullable = false)
-    private int inventory;
-
     @ToString.Include
     @Column(name = "is_del")
     private boolean isDel;
     // 商品类别（双向关联）
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id", nullable = false)
+    @JsonIgnore
     @ToString.Exclude
     private Category category;
 
@@ -50,4 +47,6 @@ public class Product {
     @Column(name = "sort")
     private int sort;
 
+    @Column(name = "is_batch_managed", nullable = false)
+    private boolean isBatchManaged = false;
 }

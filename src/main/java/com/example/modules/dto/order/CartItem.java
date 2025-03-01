@@ -7,15 +7,30 @@ import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 
 /**
- * 购物车订单项Dto
+ * 购物车订单项DTO
+ * 用于前端传递购物车中的商品信息
  */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class CartItem {
-
+    /**
+     * 商品ID
+     */
     private Integer id;
-    private int count;
+
+    /**
+     * 购买数量
+     */
+    private int quantity;
+
+    /**
+     * 销售单价
+     */
     private BigDecimal price;
+
+    /**
+     * 商品名称
+     */
     private String name;
 }

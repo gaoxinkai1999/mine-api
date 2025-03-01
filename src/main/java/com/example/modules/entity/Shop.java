@@ -6,7 +6,6 @@ import org.hibernate.annotations.ColumnDefault;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.List;
 
 @AllArgsConstructor
@@ -42,7 +41,7 @@ public class Shop {
     private PriceRule priceRule;
 
     @Column(name = "arrears", nullable = false)
-    private BigDecimal arrears;
+    private BigDecimal arrears=BigDecimal.ZERO;
 
     @ToString.Exclude
     @OneToMany(mappedBy = "shop")
@@ -60,38 +59,5 @@ public class Shop {
     private boolean slow;
 
 
-    // 业务方法
-    public void addArrears(BigDecimal amount) {
-        if (amount.compareTo(BigDecimal.ZERO) < 0) {
-            throw new IllegalArgumentException("Amount cannot be negative");
-        }
-        this.arrears = this.arrears.add(amount);
-    }
-
-    public void reduceArrears(BigDecimal amount) {
-        if (amount.compareTo(BigDecimal.ZERO) < 0) {
-            throw new IllegalArgumentException("Amount cannot be negative");
-        }
-        if (this.arrears.compareTo(amount) < 0) {
-            throw new IllegalStateException("Insufficient arrears balance");
-        }
-        this.arrears = this.arrears.subtract(amount);
-    }
-
-    public void setLocation(String location, BigDecimal longitude, BigDecimal latitude) {
-        this.location = location;
-        this.longitude = longitude;
-        this.latitude = latitude;
-    }
-
-
-    public void delete() {
-        this.isDel = true;
-    }
-
-    @PrePersist
-    protected void onCreate() {
-        createTime = LocalDate.from(LocalDateTime.now());
-    }
 
 }

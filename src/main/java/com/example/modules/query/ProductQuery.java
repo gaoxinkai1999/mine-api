@@ -8,6 +8,7 @@ import lombok.Getter;
 
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 @Getter
@@ -18,6 +19,8 @@ public class ProductQuery implements BaseQuery {
     private String name;
     private Integer categoryId;
     private Boolean isDel;
+    private Boolean isBatchManaged;
+    private List<Integer> ids;
 
     // 关联加载选项
     @Builder.Default

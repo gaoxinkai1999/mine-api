@@ -2,6 +2,7 @@ package com.example.modules.controller;
 
 
 import com.example.modules.dto.priceRule.PriceRuleDto;
+import com.example.modules.dto.priceRule.PriceRuleSimpleDto;
 import com.example.modules.entity.PriceRule;
 import com.example.modules.mapper.PriceRuleMapper;
 import com.example.modules.query.PriceRuleQuery;
@@ -28,6 +29,17 @@ public class PriceRuleController {
     @Autowired
     private PriceRuleMapper priceRuleMapper;
 
+
+    /**
+     * 获取简易价格规则列表
+     *
+     * @return
+     */
+    @Operation(summary = "获取简易价格规则列表", description = "获取简易价格规则列表")
+    @GetMapping("/getSimplePriceRules")
+    public List<PriceRuleSimpleDto> getSimplePriceRules() {
+        return priceRuleService.getSimplePriceRules();
+    }
 
     /**
      * 获取价格规则列表

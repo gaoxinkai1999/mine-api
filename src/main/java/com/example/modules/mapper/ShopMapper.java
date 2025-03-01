@@ -46,4 +46,6 @@ public abstract class ShopMapper {
 
     public abstract ShopArrearsDto toShopArrearsDto(Shop shop);
 
+
+    public abstract Shop toEntity(ShopDto shopDto);
 }

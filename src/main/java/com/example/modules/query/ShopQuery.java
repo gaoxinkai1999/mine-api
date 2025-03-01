@@ -29,6 +29,7 @@ public class ShopQuery implements BaseQuery {
     // 预定义关联选项
     public static class Include {
         public static final String PRICE_RULE = "priceRule";
+        public static final String PRODUCT = "product";
         public static final String PRICE_RULE_DETAIL = "priceRuleDetail";
         public static final String ORDERS = "orders";
 

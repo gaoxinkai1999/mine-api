@@ -51,7 +51,8 @@ public class OrderDto implements Serializable {
         private ProductDto product;
         private BigDecimal totalSalesAmount;
         private BigDecimal totalProfit;
-        private int num;
+        private Integer quantity;
+
         private BigDecimal costPrice;
         private BigDecimal salePrice;
         private boolean isDefaultPrice;

@@ -86,4 +86,15 @@ public class StatisticsController {
                 endDate
         );
     }
+
+    /**
+     * 获取指定商品ID从最早销售时间到今天的每天销售数量
+     *
+     * @param productId 商品ID
+     * @return 每天销售数量的JSON格式
+     */
+    @GetMapping("/daily-sales/{productId}")
+    public List<Map<String, Object>> getDailySales(@PathVariable int productId) {
+        return statisticsService.getDailySalesByProductId(productId);
+    }
 }

@@ -25,8 +25,8 @@ spring:
 
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://101.42.104.145:3306/new
-    #    url: jdbc:mysql://127.0.0.1:3306/mine
+    url: jdbc:mysql://101.42.104.145:3306/mine
+    #    url: jdbc:mysql://127.0.0.1:3306/new
 
     #    url: jdbc:mysql://124.221.98.251:3306/mine
     #        url: jdbc:mysql://g.abocidee.com:3306/junlebao
@@ -57,18 +57,7 @@ spring:
 
 
 
-forest:
-  ## 日志总开关，打开/关闭Forest请求/响应日志（默认为 true）
-  log-enabled: false
-  ## 打开/关闭Forest请求日志（默认为 true）
-  log-request: true
-  ## 打开/关闭Forest响应状态日志（默认为 true）
-  log-response-status: true
-  ## 打开/关闭Forest响应内容日志（默认为 false）
-  log-response-content: true
 
-  connect-timeout: 30000      # 连接超时时间，单位为毫秒（默认为 timeout）
-  read-timeout: 30000
 
 
 springdoc:

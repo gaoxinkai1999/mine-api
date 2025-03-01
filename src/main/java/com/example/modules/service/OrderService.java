@@ -1,45 +1,48 @@
 package com.example.modules.service;
 
+import com.example.exception.MyException;
 import com.example.modules.BaseRepository;
-import com.example.modules.dto.order.Cart;
-import com.example.modules.dto.order.CartItem;
+import com.example.modules.dto.order.OrderCreateRequest;
 import com.example.modules.entity.*;
+import com.example.modules.query.BatchQuery;
 import com.example.modules.query.OrderQuery;
 import com.example.modules.query.ProductQuery;
+import com.example.modules.query.ShopQuery;
 import com.example.modules.repository.OrderRepository;
 import com.querydsl.core.BooleanBuilder;
 import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 
+/**
+ * 订单管理服务
+ * 处理订单的创建、查询和管理
+ */
 @Service
 public class OrderService implements BaseRepository<Order, OrderQuery> {
     @Autowired
-    private InventoryService inventoryService;
+    private InventoryService inventoryService; // 库存服务，用于管理库存
 
     @Autowired
-    private OrderRepository orderRepository;
+    private OrderRepository orderRepository; // 订单仓库，用于与数据库交互
 
+    @Autowired
+    private BatchService batchService; // 批次服务
+
+    @Autowired
+    private ProductService productService; // 产品服务
+
+    @Autowired
+    private SaleBatchDetailService saleBatchDetailService; // 销售批次详情服务
+
+    @Autowired
+    private JPAQueryFactory queryFactory; // JPA查询工厂
     @Autowired
     private ShopService shopService;
-
-    @Autowired
-    private ProductService productService;
-    @Autowired
-    private JPAQueryFactory queryFactory;
-    @PersistenceContext
-    private EntityManager entityManager;
-
-    private final QOrder qOrder = QOrder.order;
-    private final QOrderDetail qOrderDetail = QOrderDetail.orderDetail;
-    private final QProduct qProduct = QProduct.product;
-    private final QShop qShop = QShop.shop;
-    private final QPriceRule qPriceRule = QPriceRule.priceRule;
 
 
     /**
@@ -52,6 +55,13 @@ public class OrderService implements BaseRepository<Order, OrderQuery> {
      */
     @Override
     public JPAQuery<Order> buildBaseQuery(OrderQuery query) {
+
+        QOrder qOrder = QOrder.order; // 查询订单的QueryDSL对象
+        QOrderDetail qOrderDetail = QOrderDetail.orderDetail; // 查询订单详情的QueryDSL对象
+        QProduct qProduct = QProduct.product; // 查询产品的QueryDSL对象
+        QShop qShop = QShop.shop; // 查询商店的QueryDSL对象
+        QPriceRule qPriceRule = QPriceRule.priceRule; // 查询价格规则的QueryDSL对象
+
         // 初始化查询对象
         JPAQuery<Order> jpaQuery = queryFactory
                 .selectFrom(qOrder)
@@ -113,75 +123,103 @@ public class OrderService implements BaseRepository<Order, OrderQuery> {
 
     /**
      * 创建新订单
+     *
+     * @param request 订单创建请求
      */
     @Transactional
-    public void createOrder(Cart cart) {
-
+    public void createOrder(OrderCreateRequest request) {
+        // 获取店铺信息
+        Shop shop = shopService.findOne(ShopQuery.builder().id(request.getShopId())
+                                                       .build())
+                                     .orElseThrow(() -> new MyException("店铺不存在"));
         // 创建订单
         Order order = new Order();
-        order.setShop(entityManager.getReference(Shop.class, cart.getShopId()));
+        order.setShop(shop);
 
         // 处理订单项
-        for (CartItem cartItem : cart.getItems()) {
-            ProductQuery productQuery = ProductQuery.builder()
-                                                    .id(cartItem.getId())
-                                                    .build();
-            Product product = productService.findOne(productQuery)
-                                            .orElseThrow();
-            // 添加订单项
-            order.addOrderDetail(product, cartItem);
+        for (OrderCreateRequest.OrderItemRequest itemRequest : request.getItems()) {
+            // 获取商品信息
+            Product product = productService.findOne(ProductQuery.builder()
+                                                                 .id(itemRequest.getProductId())
+                                                                 .build())
+                                            .orElseThrow(() -> new MyException("商品不存在: " + itemRequest.getProductId()));
+
+            // 创建订单详情
+            OrderDetail orderDetail = order.createOrderDetail(product, itemRequest);
+
+            // 处理批次商品
+            if (product.isBatchManaged()) {
+                // 如果没有指定批次信息，使用FIFO自动分配
+                if (itemRequest.getBatchDetails() == null || itemRequest.getBatchDetails().isEmpty()) {
+                    List<InventoryService.BatchAllocation> allocations = 
+                        inventoryService.findAvailableBatchesByFifo(product, itemRequest.getQuantity());
+                    
+                    // 根据FIFO分配结果创建批次销售明细
+                    for (InventoryService.BatchAllocation allocation : allocations) {
+                        orderDetail.addBatchDetail(
+                            allocation.getBatch(), 
+                            allocation.getQuantity(), 
+                            itemRequest.getPrice()
+                        );
+                        // 扣减库存
+                        inventoryService.stockOut(product, allocation.getBatch(), allocation.getQuantity());
+                    }
+                } else {
+                    // 如果指定了批次信息，按指定批次处理
+                    for (OrderCreateRequest.BatchSaleDetail batchDetail : itemRequest.getBatchDetails()) {
+                        BatchQuery batchQuery = BatchQuery.builder()
+                                                          .id(batchDetail.getBatchId())
+                                                          .build();
+                        Batch batch = batchService.findOne(batchQuery)
+                                                  .orElseThrow(() -> new MyException("批次不存在: " + batchDetail.getBatchNumber()));
+
+                        orderDetail.addBatchDetail(batch, batchDetail.getQuantity(), itemRequest.getPrice());
+                        inventoryService.stockOut(product, batch, batchDetail.getQuantity());
+                    }
+                }
+            } else {
+                // 非批次商品直接扣减库存
+                inventoryService.stockOut(product, itemRequest.getQuantity());
+            }
         }
-        // 4. 保存订单
-        Order save = orderRepository.save(order);
 
-        //  处理每个商品的出库
-        for (OrderDetail item : order.getOrderDetails()) {
-            inventoryService.updateInventory(
-                    item.getProduct()
-                        .getId(),
-                    -item.getNum(), // 出库数量为负数
-                    OperationType.销售出库,
-                    save.getId()
-            );
-        }
-
-
+        // 保存订单
+        orderRepository.save(order);
     }
 
     /**
-     * @param orderId
-     */
-    // 删除订单
-    public void deleteOrder(Integer orderId) {
-
-        orderRepository.deleteById(orderId);
-    }
-
-    // 以下为新内容
-
-
-    /**
-     * 取消销售订单并入库
-     *
-     * @param orderId 订单ID
+     * 取消销售订单
      */
     @Transactional
     public void cancelOrder(Integer orderId) {
         // 1. 查找订单
         Order order = orderRepository.findById(orderId)
-                                     .orElseThrow(() -> new RuntimeException("订单不存在: " + orderId));
-
+                                     .orElseThrow(() -> new MyException("订单不存在: " + orderId));
 
         // 2. 处理每个商品的入库
-        for (OrderDetail item : order.getOrderDetails()) {
-            inventoryService.updateInventory(
-                    item.getProduct()
-                        .getId(),
-                    item.getNum(), // 入库数量为正数
-                    OperationType.取消销售订单,
-                    orderId
-            );
+        for (OrderDetail orderDetail : order.getOrderDetails()) {
+            Product product = orderDetail.getProduct();
+
+            if (product.isBatchManaged()) {
+                // 对于批次商品，需要处理每个批次的入库
+                List<SaleBatchDetail> batchDetails = saleBatchDetailService.findByOrderDetail(orderDetail.getId());
+                for (SaleBatchDetail batchDetail : batchDetails) {
+                    // 批次入库
+                    inventoryService.stockIn(
+                            product,
+                            batchDetail.getBatch(),
+                            batchDetail.getQuantity()
+                    );
+                }
+            } else {
+                // 对于非批次商品，直接入库
+                inventoryService.stockIn(
+                        product,
+                        orderDetail.getQuantity()
+                );
+            }
         }
+
         // 3. 删除订单
         orderRepository.delete(order);
     }

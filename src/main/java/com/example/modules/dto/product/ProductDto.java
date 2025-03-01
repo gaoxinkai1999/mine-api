@@ -10,6 +10,7 @@ import java.math.BigDecimal;
 
 /**
  * DTO for {@link com.example.modules.entity.Product}
+ * 基础商品信息dto，包含库存
  */
 @Getter
 @Setter
@@ -20,19 +21,10 @@ public class ProductDto implements Serializable {
     private String name;
     private BigDecimal costPrice;
     private BigDecimal defaultSalePrice;
-    private int inventory;
-    private CategoryDto category;
+    private boolean isDel;
+    private Integer categoryId;
     private int sort;
+    private boolean isBatchManaged;
+    private  ProductStockDTO productStockDTO;
 
-    /**
-     * DTO for {@link com.example.modules.entity.Category}
-     */
-    @Getter
-    @Setter
-    @ToString
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    public static class CategoryDto implements Serializable {
-        private int id;
-        private String name;
-    }
 }

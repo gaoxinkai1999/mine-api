@@ -7,8 +7,10 @@ import com.example.modules.dto.statistics.response.SalesStatisticsDTO;
 import com.example.modules.dto.statistics.response.ShopStatisticsDTO;
 import com.example.modules.entity.Order;
 import com.example.modules.entity.OrderDetail;
+import com.example.modules.entity.Product;
 import com.example.modules.entity.Shop;
 import com.example.modules.query.OrderQuery;
+import com.example.modules.query.ProductQuery;
 import com.example.modules.query.ShopQuery;
 import com.example.modules.utils.DataExtractor;
 import com.example.modules.utils.MovingAverageCalculator;
@@ -42,7 +44,6 @@ public class StatisticsService {
     @Autowired
     private ProductService productService; // 商品模块服务
 
-
     /**
      * 计算所有商家的统计数据
      *
@@ -72,12 +73,10 @@ public class StatisticsService {
      * 日期范围统计方法
      * 计算指定日期范围内的销售统计数据
      *
-     * @param startDate
-     * @param endDate
-     * @return
+     * @param startDate 开始日期
+     * @param endDate   结束日期
+     * @return 销售统计数据
      */
-
-    //
     public SalesStatisticsDTO calculateDateRangeStatistics(LocalDate startDate, LocalDate endDate) {
         OrderQuery build = OrderQuery.builder()
                                      .startTime(startDate)
@@ -91,11 +90,10 @@ public class StatisticsService {
     /**
      * 计算每日销售统计数据
      *
-     * @param startDate
-     * @param endDate
-     * @return
+     * @param startDate 开始日期
+     * @param endDate   结束日期
+     * @return 每日销售统计数据
      */
-
     public Map<LocalDate, SalesStatisticsDTO> calculateDailyStatistics(LocalDate startDate, LocalDate endDate) {
         OrderQuery orderQuery = OrderQuery.builder()
                                           .startTime(startDate)
@@ -228,7 +226,7 @@ public class StatisticsService {
                 // 获取商品基本信息
                 int productId = item.getProduct()
                                     .getId();        // 商品ID
-                int quantity = item.getNum();                     // 销售数量
+                int quantity = item.getQuantity();                     // 销售数量
                 String name = item.getProduct()
                                   .getName();        // 商品名称
                 BigDecimal sales = item.getTotalSalesAmount();    // 商品销售额
@@ -368,11 +366,20 @@ public class StatisticsService {
     public MovingAverageLineDTO getMovingAverage(int[] productIds, DataExtractor dataExtractor, int period) {
         log.info("计算移动平均线，产品数: {}, 周期: {}", productIds.length, period);
         // 获取产品ID对应的产品名称
-        List<String> namesByIds = productService.getNamesByIds(productIds);
+        ProductQuery productQuery = ProductQuery.builder()
+                                                .ids(Arrays.stream(productIds)
+                                                           .boxed()
+                                                           .toList())
+                                                .build();
+        List<String> namesByIds = productService.findList(productQuery)
+                                                .stream()
+                                                .map(Product::getName)
+                                                .toList();
+
 
         // 设置日期范围（2024年11月10日至2025年1月9日）
-        LocalDate startDate = LocalDate.of(2024, 12, 20);
-        LocalDate endDate = LocalDate.of(2025, 1, 9);
+        LocalDate startDate = LocalDate.of(2024, 2, 20);
+        LocalDate endDate = LocalDate.now();
 
         // 获取日期范围内的每日销售统计
         Map<LocalDate, SalesStatisticsDTO> dailyStatistics = calculateDailyStatistics(startDate, endDate);
@@ -448,9 +455,7 @@ public class StatisticsService {
             double sales = 0;
             for (ProductSalesInfoDTO product : productQuantities) {
                 if (product.getProductId() == productId) {
-                    double taskA1 = taskMap.get(MovingAverageLineRequest.TaskType.Quantity)
-                                           .apply(product)
-                                           .doubleValue();
+
                     sales = dataExtractor.extract(product)
                                          .doubleValue(); // 转换为 double
                     break;
@@ -466,5 +471,37 @@ public class StatisticsService {
         return dailySales;
     }
 
+    /**
+     * 获取指定商品ID从最早销售时间到今天的每天销售数量
+     *
+     * @param productId 商品ID
+     * @return 每天销售数量的列表
+     */
+    public List<Map<String, Object>> getDailySalesByProductId(int productId) {
+        // 获取该商品的最早销售日期
 
+        LocalDate startDate = productService.getEarliestSaleDateByProductId(productId);
+        LocalDate endDate = LocalDate.now();
+
+        // 获取指定日期范围内的销售统计
+        Map<LocalDate, SalesStatisticsDTO> dailyStatistics = calculateDailyStatistics(startDate, endDate);
+
+        // 格式化结果
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (LocalDate date : dailyStatistics.keySet()) {
+            SalesStatisticsDTO stats = dailyStatistics.get(date);
+            int salesQuantity = stats.getProductSalesInfoDTOS().stream()
+                    .filter(product -> product.getProductId() == productId)
+                    .mapToInt(ProductSalesInfoDTO::getQuantity)
+                    .sum();
+
+            Map<String, Object> entry = new HashMap<>();
+            entry.put("ds", date.toString());
+            entry.put("y", salesQuantity);
+            result.add(entry);
+        }
+
+        return result;
+    }
 }
+

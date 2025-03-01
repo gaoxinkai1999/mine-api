@@ -43,4 +43,6 @@ public interface BaseRepository<T, Q extends BaseQuery> {
 
 
 
+
+
 }

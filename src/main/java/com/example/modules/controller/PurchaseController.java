@@ -1,38 +1,35 @@
 package com.example.modules.controller;
 
-import com.example.Config.ApiResponse;
-import com.example.modules.dto.purchase.PurchaseRecommendationDTO;
-import com.example.modules.dto.purchase.PurchaseRecommendationRequest;
-import com.example.modules.entity.Purchase;
+import com.example.modules.dto.purchase.PurchaseCreateRequest;
 import com.example.modules.service.PurchaseService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+import java.util.Map;
 
 /**
- * 入库控制器
- * 处理商品入库相关的HTTP请求，包括创建入库单、执行入库和库存预测
+ * 采购控制器
  */
 @RestController
 @RequestMapping("/purchase")
+@Tag(name = "purchase", description = "采购管理接口")
 public class PurchaseController {
-
 
     @Autowired
     private PurchaseService purchaseService;
 
-
     /**
      * 创建采购订单并入库
      *
-     * @param purchase 采购订单对象
+     * @param request 采购订单创建请求
      * @return 成功信息
      */
     @PostMapping("/create")
-    public String createPurchaseOrder(@RequestBody Purchase purchase) {
-        purchaseService.createPurchaseOrder(purchase);
-        return "采购订单创建成功并已入库！";
+    public void createPurchaseOrder(@RequestBody PurchaseCreateRequest request) {
+        purchaseService.createPurchaseOrder(request);
     }
 
     /**
@@ -42,34 +39,51 @@ public class PurchaseController {
      * @return 成功信息
      */
     @PostMapping("/cancel")
-    public String cancelPurchaseOrder(@RequestParam Integer purchaseId) {
+    public void cancelPurchaseOrder(@RequestParam Integer purchaseId) {
         purchaseService.cancelPurchaseOrder(purchaseId);
-        return "采购订单取消成功！";
+
     }
 
     /**
-     * 根据采购预算生成采购建议（POST 方法）
+     * 获取商品采购建议（基于历史平均值）
      *
-     * @param request 包含采购预算、商品ID列表和销售预测周期的请求体
-     * @return 采购建议列表
+     * @param daysToAnalyze   分析的历史天数，默认为30天
+     * @param leadTimeDays    补货周期天数，默认为7天
+     * @param safetyStockDays 安全库存天数，默认为14天
+     * @return 商品ID到建议采购数量的映射
      */
-    @PostMapping("/recommendations")
-    public List<PurchaseRecommendationDTO> getPurchaseRecommendations(@RequestBody PurchaseRecommendationRequest request) {
-        return null;
+    @GetMapping("/suggestions")
+    @Operation(summary = "获取商品采购建议（基于历史平均值）", description = "基于历史销售数据、当前库存、安全库存水平和补货周期来计算建议采购数量")
+    public Map<Integer, Integer> getPurchaseSuggestions(
+            @Parameter(description = "分析的历史天数") @RequestParam(defaultValue = "30") int daysToAnalyze,
+            @Parameter(description = "补货周期天数") @RequestParam(defaultValue = "7") int leadTimeDays,
+            @Parameter(description = "安全库存天数") @RequestParam(defaultValue = "14") int safetyStockDays) {
+        return purchaseService.generatePurchaseSuggestions(daysToAnalyze, leadTimeDays, safetyStockDays);
     }
 
+    /**
+     * 获取商品采购建议（基于Prophet预测）
+     * @param safetyStockDays 安全库存天数，默认为14天
+     * @return 商品ID到建议采购数量的映射
+     */
+    @GetMapping("/suggestions/prophet")
+    @Operation(summary = "获取商品采购建议（基于Prophet预测）", 
+              description = "使用Prophet模型预测未来销量，结合当前库存、安全库存水平和补货周期来计算建议采购数量")
+    public Map<Integer, Integer> getProphetPurchaseSuggestions(
+
+            @Parameter(description = "安全库存天数") @RequestParam(defaultValue = "14") int safetyStockDays) {
+        return purchaseService.generatePurchaseSuggestionsByProphet ( safetyStockDays);
+    }
 
     /**
      * 删除入库单
      *
      * @param id 入库单ID
-     * @return ApiResponse 删除操作的响应结果
+     * @return 成功信息
      */
     @PostMapping("/delete")
-    public ApiResponse delete(int id) {
+    public String delete(@RequestParam Integer id) {
         purchaseService.cancelPurchaseOrder(id);
-        return ApiResponse.success();
+        return "采购订单删除成功！";
     }
-
-
 }

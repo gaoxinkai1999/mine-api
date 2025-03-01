@@ -35,6 +35,12 @@ public class ShopController {
     @Autowired
     private ShopMapper shopMapper;
 
+    @Operation(summary = "新建店铺", description = "新建店铺")
+    @PostMapping("/create")
+    public void create(@RequestBody ShopDto shop) {
+        shopService.create(shop);
+    }
+
 
     @GetMapping("/arrears")
     @Operation(summary = "获取商家欠款数据")
@@ -163,97 +169,4 @@ public class ShopController {
                     .toList();
     }
 
-    ;
-    ///**
-    // * 根据删除状态查询店铺
-    // * @param isDel 删除状态
-    // * @return ApiResponse 包含店铺列表的响应对象
-    // */
-    //@PostMapping("/findWithIsDel")
-    // public ApiResponse findWithIsDel(boolean isDel) {
-    //    List<com.example.Jpa.Dto.shop.ShopDto> shops = shopService.findWithIsDel(isDel);
-    //    return ApiResponse.success(shops);
-    //}
-    //
-    //@PostMapping("/findShopDtoByIsDelFalse")
-    // public ApiResponse findShopDtoByIsDelFalse() {
-    //    Map<String, List<ShopDto>> groupedShops = shopRepository.findShopDtoByIsDelFalse().stream().collect(Collectors.groupingBy(ShopDto::getPinyin));
-    //    // 对Map中的键进行排序
-    //    return ApiResponse.success(groupedShops);
-    //}
-    //
-    //@PostMapping("/updateShopInfo")
-    // public ApiResponse updateShopInfo(@RequestBody Shop shop) {
-    //    shopService.updateShopInfo(shop);
-    //    return ApiResponse.success();
-    //}
-    //
-    //
-    //@PostMapping("/findById")
-    // public ApiResponse findById(int id) {
-    //    ShopDto shopDto = shopRepository.findShopDtoById(id);
-    //    return ApiResponse.success(shopDto);
-    //}
-    //
-    //@PostMapping("/add")
-    // public ApiResponse add(@RequestBody Shop shop) {
-    //    Optional<Shop> shopOptional = shopRepository.findByNameAndLocation(shop.getName(), shop.getLocation());
-    //    if (shopOptional.isPresent()) {
-    //        return ApiResponse.error( "商家已存在");
-    //    }
-    //    shop.setPinyin(ChineseToPinyinInitials.getPinYinInitials(shop.getName()).charAt(0));
-    //    shopRepository.save(shop);
-    //    return ApiResponse.success();
-    //}
-    //
-    //
-    //@PostMapping("/arrears")
-    // public ApiResponse arrears() {
-    //    List<ShopDto> arrears = shopRepository.findArrears();
-    //    return ApiResponse.success(arrears);
-    //}
-    //
-    //@PostMapping("/updateArrearsById")
-    // public ApiResponse updateArrearsById(@RequestBody Shop shop) {
-    //    shopRepository.updateArrearsById(shop.getArrears(), shop.getId());
-    //    return ApiResponse.success();
-    //}
-    //
-
-    //
-    //@PostMapping("/updateIsDelById")
-    // public ApiResponse updateIsDelById(int id) {
-    //    shopRepository.updateIsDelById(true, id);
-    //    return ApiResponse.success();
-    //}
-    //
-    //@PostMapping("/updateLocationById")
-    // public ApiResponse updateLocationById(int id, BigDecimal longitude, BigDecimal latitude) {
-    //    shopService.updateLocationById(id, longitude, latitude);
-    //    return ApiResponse.success();
-    //}
-    //
-    ///**
-    // * 查找附近的店铺,最近5家
-    // *
-    // * @param longitude 经度
-    // * @param latitude  纬度
-    // * @return 附近的店铺
-    // */
-    //@PostMapping("/findNearShop")
-    // public ApiResponse findNearShop(BigDecimal longitude, BigDecimal latitude) {
-    //    return ApiResponse.success(mapService.findNearShop(longitude, latitude));
-    //}
-    //
-    ///**
-    // * 查找最近的店铺
-    // *
-    // * @param longitude 经度
-    // * @param latitude  纬度
-    // * @return 最近的店铺
-    // */
-    //@PostMapping("/findNearestShop")
-    // public ApiResponse findNearestShop(BigDecimal longitude, BigDecimal latitude) {
-    //    return ApiResponse.success(mapService.findNearestShop(longitude, latitude));
-    //}
 }

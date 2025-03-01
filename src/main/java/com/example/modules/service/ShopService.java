@@ -4,14 +4,13 @@ package com.example.modules.service;
 import com.example.exception.MyException;
 import com.example.modules.BaseRepository;
 import com.example.modules.dto.shop.ShopArrearsDto;
+import com.example.modules.dto.shop.ShopDto;
 import com.example.modules.dto.shop.ShopRequestDto;
-import com.example.modules.entity.QPriceRule;
-import com.example.modules.entity.QPriceRuleDetail;
-import com.example.modules.entity.QShop;
-import com.example.modules.entity.Shop;
+import com.example.modules.entity.*;
 import com.example.modules.mapper.ShopMapper;
 import com.example.modules.query.ShopQuery;
 import com.example.modules.repository.ShopRepository;
+import com.example.modules.utils.ChinesePinyinFirstLetter;
 import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQuery;
@@ -20,30 +19,40 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+/**
+ * 商家管理服务
+ * 处理商家的增删改查及相关操作
+ */
 @Service
 @Slf4j
 public class ShopService implements BaseRepository<Shop, ShopQuery> {
 
     @Autowired
-    private ShopRepository shopRepository;
-    @Autowired
-    private ShopMapper shopMapper;
-    @Autowired
-    private JPAQueryFactory queryFactory;
-    private final QShop shop = QShop.shop;
+    private ShopRepository shopRepository; // 商家仓库，用于与数据库交互
 
-    private final QPriceRule priceRule = QPriceRule.priceRule;
-    private final QPriceRuleDetail priceRuleDetail = QPriceRuleDetail.priceRuleDetail;
+    @Autowired
+    private ShopMapper shopMapper; // 商家映射器，用于对象转换
 
+    @Autowired
+    private JPAQueryFactory queryFactory; // JPA查询工厂
+
+    private final QShop shop = QShop.shop; // 查询商家的QueryDSL对象
+
+    private final QPriceRule priceRule = QPriceRule.priceRule; // 查询价格规则的QueryDSL对象
+    private final QPriceRuleDetail priceRuleDetail = QPriceRuleDetail.priceRuleDetail; // 查询价格规则详情的QueryDSL对象
+    private final QProduct product = QProduct.product;
 
     public void update(List<ShopRequestDto> shops) {
+        // 更新商家信息
         for (ShopRequestDto shopRequestDto : shops) {
             Shop shop = shopRepository.findById(shopRequestDto.getId())
-                                      .orElseThrow(() -> new MyException("Shop not found"));
+                                      .orElseThrow(() -> new MyException("商家未找到"));
             shopMapper.partialUpdate(shopRequestDto, shop);
             shopRepository.save(shop);
         }
@@ -54,7 +63,8 @@ public class ShopService implements BaseRepository<Shop, ShopQuery> {
      */
     public List<ShopArrearsDto> arrears() {
         ShopQuery build = ShopQuery.builder()
-                                   .havaArrears(true).isDel(false)
+                                   .havaArrears(true)
+                                   .isDel(false)
                                    .build();
         List<Shop> list = findList(build);
 
@@ -96,6 +106,11 @@ public class ShopService implements BaseRepository<Shop, ShopQuery> {
                      .contains(ShopQuery.Include.PRICE_RULE_DETAIL)) {
                 jpaQuery.leftJoin(priceRule.priceRuleDetails, priceRuleDetail)
                         .fetchJoin();
+                if (query.getIncludes()
+                         .contains(ShopQuery.Include.PRODUCT)) {
+                    jpaQuery.leftJoin(priceRuleDetail.product, product)
+                            .fetchJoin();
+                }
 
             }
         }
@@ -139,13 +154,28 @@ public class ShopService implements BaseRepository<Shop, ShopQuery> {
         if (query.getSlow() != null) {
             where.and(shop.slow.eq(query.getSlow()));
         }
-        if (query.getHavaArrears()!=null) {
+        if (query.getHavaArrears() != null) {
             where.and(shop.arrears.gt(0));
         }
 
         return jpaQuery
                 .where(where)
                 .orderBy(shop.createTime.desc());
+
+    }
+
+    /**
+     * 新建店铺
+     * @param shop
+     */
+    public void create(ShopDto shop) {
+        shop.setPinyin(ChinesePinyinFirstLetter.getFirstLetterOfFirstCharacter(shop.getName()));
+        shop.setArrears(BigDecimal.ZERO);
+        shop.setSlow(false);
+        shop.setCreateTime(LocalDate.now());
+        shop.setDel(false);
+        Shop shopEntity = shopMapper.toEntity(shop);
+        shopRepository.save(shopEntity);
 
     }
 }
